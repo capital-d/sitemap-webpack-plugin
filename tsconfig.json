@@ -1,6 +1,11 @@
 {
   "target": "ES5",
   "include": ["src/*.ts"],
+  "ts-node": {
+    "moduleTypes": {
+      "jest.config.ts": "cjs"
+    }
+  },
   "compilerOptions": {
     "module": "ES2015",
     "moduleResolution": "node",

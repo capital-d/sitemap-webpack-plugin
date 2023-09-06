@@ -30,6 +30,19 @@ export function assertValidChangefreq(
 }
 
 // Helper function to determine the publicPath from the compilation.
+export function compilationOutputPath(compilation: Compilation): string {
+  if (
+    compilation.options.output &&
+    compilation.options.output.path // &&
+  //  compilation.options.output.path !== "auto"
+  ) {
+    return (compilation.options.output.path as string) //.replace(/\/$/, "");
+  } else {
+    return "";
+  }
+}
+
+// Helper function to determine the publicPath from the compilation.
 export function compilationPublicPath(compilation: Compilation): string {
   if (
     compilation.options.output &&

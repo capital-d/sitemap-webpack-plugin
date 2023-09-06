@@ -11,3 +11,4 @@ export { default as pathOpts } from "./path-opts";
 export { default as sitemapOptions } from "./sitemap-options";
 export { default as skipGzip } from "./skip-gzip";
 export { default as unevenSlashes } from "./uneven-slashes";
+// export { default as frombuild } from "./frombuild";

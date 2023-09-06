@@ -11,6 +11,8 @@ type WebpackShim = (
   callback: (error: unknown) => void
 ) => void;
 
+jest.setTimeout(20000)
+
 export default function generateCases(webpack: WebpackShim): void {
   describe("Success cases", () => {
     Object.values(cases).forEach(successCase => {

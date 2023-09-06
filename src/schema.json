@@ -59,6 +59,10 @@
           "description": "Whether to skip generating a gzipped sitemap alongside the plain-text file (defaults to `false`).",
           "type": "boolean"
         },
+        "frombuild": {
+          "description": "Generate paths by build folder",
+          "type": "boolean"
+        },
         "formatter": {
           "description": "An optional function to format the generated sitemap before it is emitted (for example, if you'd like to pretty-print the XML).",
           "instanceOf": "Function"

@@ -8,7 +8,8 @@ import {
   compilationPublicPath,
   gzip,
   assertValidChangefreq,
-  sitemapFilename
+  sitemapFilename,
+  compilationOutputPath
 } from "./helpers";
 import {
   Configuration,
@@ -18,12 +19,15 @@ import {
   SitemapPathOptions
 } from "./types";
 import schema from "./schema.json";
+import { readDirectory } from "./read-directory";
+import { convertToSitemapPath } from "./convert-to-sitemap-path";
 
 export default class SitemapWebpackPlugin {
   private base: string;
   private paths: Array<Path>;
   private filename = "sitemap";
   private skipgzip = false;
+  private frombuild = false;
   private formatter?: Formatter;
   private globalPathOptions: SitemapPathOptions;
 
@@ -44,6 +48,7 @@ export default class SitemapWebpackPlugin {
       formatter,
       lastmod,
       changefreq,
+      frombuild,
       ...rest
     } = options;
     if (filename) {
@@ -51,6 +56,9 @@ export default class SitemapWebpackPlugin {
     }
     if (skipgzip) {
       this.skipgzip = skipgzip;
+    }
+    if (frombuild) {
+      this.frombuild = frombuild;
     }
     this.formatter = formatter;
 
@@ -70,9 +78,20 @@ export default class SitemapWebpackPlugin {
     this.globalPathOptions = globalPathOptions;
   }
 
+  private async getDinamicPaths(dist: string, publicPath: string) {
+    const htmls = await readDirectory(dist, 'html')
+    const paths = htmls.map(convertToSitemapPath({ dist, base: this.base, publicPath }))
+    return paths
+  }
+
   private async emitSitemaps(compilation: Compilation): Promise<Array<string>> {
     try {
       const publicPath = compilationPublicPath(compilation);
+
+      if (this.frombuild) {
+        const buildPath = compilationOutputPath(compilation)
+        this.paths = await this.getDinamicPaths(buildPath, publicPath)
+      }
 
       const sitemaps = await generateSitemaps(
         this.paths,
@@ -93,7 +112,7 @@ export default class SitemapWebpackPlugin {
       });
 
       return sitemaps;
-    } catch (err) {
+    } catch (err: any) {
       compilation.errors.push(err.stack);
 
       return [];
@@ -113,7 +132,7 @@ export default class SitemapWebpackPlugin {
           sitemapFilename(this.filename, "xml.gz", idx),
           new RawSource(compressed, false)
         );
-      } catch (err) {
+      } catch (err: any) {
         compilation.errors.push(err.stack);
       }
     }

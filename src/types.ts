@@ -17,6 +17,7 @@ export type Path = string | PathOptions;
 export type ConfigurationOptions = SitemapPathOptions & {
   filename?: string;
   skipgzip?: boolean;
+  frombuild?: boolean;
   formatter?: (code: string) => string;
 };
 
@@ -27,3 +28,8 @@ export type Configuration = {
 };
 
 export type Formatter = (code: string) => string;
+
+export type FilePath = {
+  path: string,
+  name: string
+}
