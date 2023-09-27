@@ -146,10 +146,41 @@ export default class SitemapWebpackPlugin {
     }
   }
 
+  private async resoveCompilation(compiler: Compiler):Promise<Compilation> {
+    return new Promise(resolve => {
+      compiler.hooks.afterEmit.tap("sitemap-webpack-plugin", compilation => {
+        compilation.hooks.processAssets.tapPromise(
+          {
+            name: "sitemap-webpack-plugin",
+            stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+          },
+          async () => {
+            resolve(compilation);
+          }
+        );
+      });
+    });
+    
+  }
+
+  private async resoveDone(compiler: Compiler) {
+    return new Promise(resolve => {
+      compiler.hooks.done.tap("sitemap-webpack-plugin", stats => {
+        resolve(stats);
+      });
+    });
+    
+  }
+
   apply(compiler: Compiler): void {
     if (compiler.webpack && compiler.webpack.version[0] == "5") {
       // webpack 5
-      compiler.hooks.compilation.tap("sitemap-webpack-plugin", compilation => {
+      // const finish = Promise.all([this.resoveCompilation(compiler), this.resoveDone(compiler)])
+      // .then(([compilation, done]) => {
+      //   this.run(compilation)
+      // })
+      compiler.hooks.done.tap("sitemap-webpack-plugin", stats => {
+        const {compilation} = stats
         compilation.hooks.processAssets.tapPromise(
           {
             name: "sitemap-webpack-plugin",
