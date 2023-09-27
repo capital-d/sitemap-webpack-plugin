@@ -148,7 +148,7 @@ export default class SitemapWebpackPlugin {
 
   private async resoveCompilation(compiler: Compiler):Promise<Compilation> {
     return new Promise(resolve => {
-      compiler.hooks.afterEmit.tap("sitemap-webpack-plugin", compilation => {
+      compiler.hooks.compilation.tap("sitemap-webpack-plugin", compilation => {
         compilation.hooks.processAssets.tapPromise(
           {
             name: "sitemap-webpack-plugin",
@@ -175,20 +175,20 @@ export default class SitemapWebpackPlugin {
   apply(compiler: Compiler): void {
     if (compiler.webpack && compiler.webpack.version[0] == "5") {
       // webpack 5
-      const finish = Promise.all([this.resoveCompilation(compiler), this.resoveDone(compiler)])
-      .then(([compilation, done]) => {
-        this.run(compilation)
-      })
-      // compiler.hooks.done.tap("sitemap-webpack-plugin", stats => {
-      //   const {compilation} = stats
-      //   compilation.hooks.processAssets.tapPromise(
-      //     {
-      //       name: "sitemap-webpack-plugin",
-      //       stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-      //     },
-      //     async () => this.run(compilation)
-      //   );
-      // });
+      // const finish = Promise.all([this.resoveCompilation(compiler), this.resoveDone(compiler)])
+      // .then(([compilation, done]) => {
+      //   this.run(compilation)
+      // })
+      compiler.hooks.afterCompile.tap("sitemap-webpack-plugin", compilation => {
+        // const {compilation} = stats
+        compilation.hooks.processAssets.tapPromise(
+          {
+            name: "sitemap-webpack-plugin",
+            stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+          },
+          async () => this.run(compilation)
+        );
+      });
     } else if (compiler.hooks) {
       // webpack 4
       compiler.hooks.emit.tapPromise(
