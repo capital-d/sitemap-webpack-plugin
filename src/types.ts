@@ -1,4 +1,5 @@
 import { SitemapItemLoose, EnumChangefreq } from "sitemap";
+import { Source } from "webpack-sources";
 
 export type SitemapPathOptions = Omit<
   SitemapItemLoose,
@@ -32,4 +33,7 @@ export type Formatter = (code: string) => string;
 export type FilePath = {
   path: string,
   name: string
+}
+export interface CompilationAssets {
+	[index: string]: Source;
 }

@@ -16,11 +16,15 @@ import {
   ConfigurationOptions,
   Formatter,
   Path,
-  SitemapPathOptions
+  SitemapPathOptions,
+  CompilationAssets
 } from "./types";
 import schema from "./schema.json";
 import { readDirectory } from "./read-directory";
 import { convertToSitemapPath } from "./convert-to-sitemap-path";
+import { convertAssetToSitemapPath } from "./convert-asset-to-sitemap-path";
+
+const PLUGIN_NAME = "sitemap-webpack-plugin"
 
 export default class SitemapWebpackPlugin {
   private base: string;
@@ -30,6 +34,8 @@ export default class SitemapWebpackPlugin {
   private frombuild = false;
   private formatter?: Formatter;
   private globalPathOptions: SitemapPathOptions;
+  private assetsHTMLs: string[] = [];
+  private cssReady = false;
 
   constructor(configuration: Configuration) {
     validate(schema as JSONSchema7, configuration, {
@@ -41,6 +47,7 @@ export default class SitemapWebpackPlugin {
     // Set mandatory values
     this.base = base;
     this.paths = paths;
+    this.cssReady = false;
 
     const {
       filename,
@@ -80,8 +87,15 @@ export default class SitemapWebpackPlugin {
 
   private async getDinamicPaths(dist: string, publicPath: string) {
     const htmls = await readDirectory(dist, 'html')
-    const paths = htmls.map(convertToSitemapPath({ dist, base: this.base, publicPath }))
+    const html = htmls.length === 0 ? [{ name: "index.html", path: '/' }] : htmls
+    const paths = html.map(convertToSitemapPath({ dist, base: this.base, publicPath }))
     return paths
+  }
+
+  private getConvertedPath(publicPath: string) {
+
+    return this.assetsHTMLs
+      .map(convertAssetToSitemapPath({ base: this.base, publicPath }))
   }
 
   private async emitSitemaps(compilation: Compilation): Promise<Array<string>> {
@@ -90,7 +104,8 @@ export default class SitemapWebpackPlugin {
 
       if (this.frombuild) {
         const buildPath = compilationOutputPath(compilation)
-        this.paths = await this.getDinamicPaths(buildPath, publicPath)
+        // this.paths = await this.getDinamicPaths(buildPath, publicPath)
+        this.paths = this.getConvertedPath(publicPath)
       }
 
       const sitemaps = await generateSitemaps(
@@ -146,7 +161,7 @@ export default class SitemapWebpackPlugin {
     }
   }
 
-  private async resoveCompilation(compiler: Compiler):Promise<Compilation> {
+  private async resoveCompilation(compiler: Compiler): Promise<Compilation> {
     return new Promise(resolve => {
       compiler.hooks.compilation.tap("sitemap-webpack-plugin", compilation => {
         compilation.hooks.processAssets.tapPromise(
@@ -160,7 +175,7 @@ export default class SitemapWebpackPlugin {
         );
       });
     });
-    
+
   }
 
   private async resoveDone(compiler: Compiler) {
@@ -169,7 +184,7 @@ export default class SitemapWebpackPlugin {
         resolve(stats);
       });
     });
-    
+
   }
 
   apply(compiler: Compiler): void {
@@ -179,15 +194,51 @@ export default class SitemapWebpackPlugin {
       // .then(([compilation, done]) => {
       //   this.run(compilation)
       // })
-      compiler.hooks.afterCompile.tap("sitemap-webpack-plugin", compilation => {
+
+
+      const onEnd = async (compilation: Compilation) => {
+
+        // await this.run(compilation)
+      };
+
+      compiler.hooks.watchRun.tap(PLUGIN_NAME, () => {
+        this.cssReady = false;
+      });
+
+      compiler.hooks.emit.tap(PLUGIN_NAME, (compilation) => {
+        let assets = Object.entries(compilation.assets);
+        this.assetsHTMLs = assets
+          .map(([fileName]) => fileName)
+          .filter(fileName => fileName.split(".").slice(-1)[0] === 'html')
+
+          // this.run(compilation)
+      });
+
+      compiler.hooks.afterEmit.tapPromise(PLUGIN_NAME, onEnd);
+      compiler.hooks.compilation.tap("sitemap-webpack-plugin", compilation => {
         // const {compilation} = stats
-        compilation.hooks.processAssets.tapPromise(
-          {
-            name: "sitemap-webpack-plugin",
-            stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-          },
-          async () => this.run(compilation)
-        );
+
+        compilation.hooks.needAdditionalPass.tap(PLUGIN_NAME, () => {
+
+          if (!this.cssReady) {
+            this.cssReady = true;
+            return true;
+          }
+          return false
+        });
+
+        if (this.cssReady) {
+
+          compilation.hooks.processAssets.tapPromise(
+            {
+              name: "sitemap-webpack-plugin",
+              stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+            },
+            async () => this.run(compilation)
+          );
+        }
+
+
       });
     } else if (compiler.hooks) {
       // webpack 4

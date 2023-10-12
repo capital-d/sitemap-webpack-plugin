@@ -9,7 +9,6 @@ const convertToSitemapPath = ({ base, dist, publicPath }: { base: string, dist: 
 
     const depth = parts.length
 
-
     const isIndex =  name === 'index.html';
 
     const htmlName = isIndex ? '' : `${name}`;
